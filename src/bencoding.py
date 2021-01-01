@@ -1,4 +1,5 @@
-from typing import Any, Optional
+from pathlib import Path
+from typing import Any, Optional, Union
 
 
 class Encoder:
@@ -90,14 +91,21 @@ class Decoder:
     def _decode_int(self) -> int:
         return int(self._read_until(b"e"))
 
-    def _decode_str(self) -> str:
+    def _decode_str(self) -> Union[str, bytes]:
         length = int(self._read_until(b":"))
-        return self._read_next(length).decode()
+        str_data: Union[bytes, str]
+        try:
+            str_data = self._read_next(length, False).decode()
+        except UnicodeDecodeError:
+            str_data = self._read_next(length, False)
+        self._read_next(length)
+        return str_data
 
     def _decode_list(self) -> list:
         res = []
         while self.raw[self._index : self._index + 1] != b"e":
             res.append(self.decode())
+        self._read_next(1)
         return res
 
     def _decode_dict(self) -> dict:
@@ -105,6 +113,7 @@ class Decoder:
         while self.raw[self._index : self._index + 1] != b"e":
             key = self.decode()
             res[key] = self.decode()
+        self._read_next(1)
         return res
 
     def decode(self) -> Any:
@@ -113,8 +122,6 @@ class Decoder:
         """
 
         current = self._read_next(1, False)
-
-        print(f"Current: {str(current)}")
         if current == b"i":
             self._read_next(1)
             return self._decode_int()
@@ -128,3 +135,11 @@ class Decoder:
             return self._decode_dict()
         else:
             return None
+
+
+if __name__ == "__main__":
+    # file = Path("/home/anatolii/Projects/pTorrent/ubuntu-20.10-desktop-amd64.iso.torrent")
+    file = Path("nfs.torrent")
+    decoder = Decoder(file.read_bytes())
+    data = decoder.decode()
+    print()

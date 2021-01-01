@@ -7,6 +7,7 @@ authors = ["Anatoliy Platonov <p4m.dev@gmail.com>"]
 [tool.poetry.dependencies]
 python = "^3.9"
 rich = "^9.5.1"
+pytest = "^6.2.1"
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.790"
