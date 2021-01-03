@@ -1,26 +1,37 @@
 from datetime import datetime
-from typing import Dict
+from typing import Dict, List
 
 from rich import print
 
 from torrent import Torrent
 
-# def generate_file_tree(dir_structure: Dict[str, dict]):
-#     display_filename_prefix_middle = "├──"
-#     display_filename_prefix_last = "└──"
-#     display_parent_prefix_middle = "    "
-#     display_parent_prefix_last = "│   "
-# TODO: Finish tree string generator
+
+def generate_file_tree(dir_structure: Dict[str, dict], parent_prefix: str = "") -> str:
+    display_filename_prefix_middle = "├──"
+    display_filename_prefix_last = "└──"
+    display_parent_prefix_middle = "    "
+    display_parent_prefix_last = "│   "
+    res = ""
+    key_list = list(dir_structure.keys())
+
+    for key, value in dir_structure.items():
+        prefix = parent_prefix
+        new_parent_prefix = parent_prefix
+
+        if key == key_list[-1]:
+            prefix += display_filename_prefix_last
+            new_parent_prefix += display_parent_prefix_middle
+        else:
+            prefix += display_filename_prefix_middle
+            new_parent_prefix += display_parent_prefix_last
+
+        res += prefix + key + "\n"
+        if value:
+            res += generate_file_tree(value, new_parent_prefix)
+    return res
 
 
-def _generate_directory_tree(torrent: Torrent) -> Dict[str, dict]:
-    name = torrent.info["info"]["name"]
-    files = []
-    if torrent.info["info"].get("files"):
-        files += [file["path"][0] for file in torrent.info["info"]["files"]]
-    else:
-        files.append(torrent.info["info"]["name"])
-
+def _generate_directory_tree(name: str, files: List[str]) -> Dict[str, dict]:
     tree: Dict[str, dict] = {name: {}}
     root = tree[name]
     for path in files:
@@ -39,11 +50,11 @@ def display_torrent_info(torrent: Torrent) -> None:
         files += [file["path"][0] for file in torrent.info["info"]["files"]]
     else:
         files.append(torrent.info["info"]["name"])
-
+    file_structure = _generate_directory_tree(torrent.info["info"]["name"], files)
     print(
         f"[yellow bold]Torrent: [green]{torrent.info['info']['name']} \"{torrent.info['comment']}\""
     )
     print(f"[yellow bold]Tracker: [green]{torrent.info['announce']}")
     print(f"[yellow bold]Created: [green]{torrent.info['created by']} ({created_at})")
     print(f"[yellow bold]Publisher: [green]{torrent.info.get('publisher')}")
-    print(f"[yellow bold]Files: \n\t[green]{files}")
+    print(f"[yellow bold]Files: \n[green]{generate_file_tree(file_structure)}")
