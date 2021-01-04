@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Any, Optional, Union
 
 
@@ -135,11 +134,3 @@ class Decoder:
             return self._decode_dict()
         else:
             return None
-
-
-if __name__ == "__main__":
-    # file = Path("/home/anatolii/Projects/pTorrent/ubuntu-20.10-desktop-amd64.iso.torrent")
-    file = Path("nfs.torrent")
-    decoder = Decoder(file.read_bytes())
-    data = decoder.decode()
-    print()
