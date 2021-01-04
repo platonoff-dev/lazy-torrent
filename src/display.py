@@ -40,14 +40,27 @@ def _generate_directory_tree(name: str, files: List[str]) -> Dict[str, dict]:
         for part in parts:
             if not current.get(part):
                 current[part] = {}
+                current = current[part]
     return tree
+
+
+def _generate_size(number_bytes: int) -> str:
+    dimensions = ["B", "KiB", "Mib", "GiB", "TiB"]
+
+    current_dim = 0
+    size = float(number_bytes)
+    while size > 1024:
+        size /= 1024
+        current_dim += 1
+
+    return f"{number_bytes:.3f} {dimensions[current_dim]}"
 
 
 def display_torrent_info(torrent: Torrent) -> None:
     created_at = datetime.fromtimestamp(torrent.info["creation date"])
     files = []
     if torrent.info["info"].get("files"):
-        files += [file["path"][0] for file in torrent.info["info"]["files"]]
+        files += ["/".join(file["path"]) for file in torrent.info["info"]["files"]]
     else:
         files.append(torrent.info["info"]["name"])
     file_structure = _generate_directory_tree(torrent.info["info"]["name"], files)
@@ -57,4 +70,5 @@ def display_torrent_info(torrent: Torrent) -> None:
     print(f"[yellow bold]Tracker: [green]{torrent.info['announce']}")
     print(f"[yellow bold]Created: [green]{torrent.info['created by']} ({created_at})")
     print(f"[yellow bold]Publisher: [green]{torrent.info.get('publisher')}")
+    print(f"[yellow bold]Size: [green]{_generate_size(torrent.size)}")
     print(f"[yellow bold]Files: \n[green]{generate_file_tree(file_structure)}")

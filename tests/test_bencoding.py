@@ -1,6 +1,4 @@
-from pathlib import Path
-
-from bencoding import Decoder, Encoder
+from bencoding import Encoder
 
 
 def test_encode_int() -> None:
@@ -31,9 +29,3 @@ def test_encode_dict() -> None:
     assert (
         Encoder(encode_dict).encode() == f"d3:str3:stei1ei1ei2el3:one3:twoee".encode()
     )
-
-
-def test_encode_decode_file() -> None:
-    file = Path("tests/test_data/nfs.torrent")
-    data = Decoder(file.read_bytes()).decode()
-    assert Encoder(data).encode() == file.read_bytes()
