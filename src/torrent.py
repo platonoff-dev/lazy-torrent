@@ -12,9 +12,7 @@ class Torrent:
 
     @property
     def size(self) -> int:
-        files = self.info["info"].get("files") or [self.info["info"]["file"]]
-        sizes = [file["length"] for file in files]
-        return sum(sizes)
-
-    def download(self) -> None:
-        pass
+        if "files" in self.info["info"]:
+            return sum([file["length"] for file in self.info["files"]])
+        else:
+            return self.info["info"]["length"]
