@@ -1,13 +1,15 @@
+import hashlib
 from pathlib import Path
 from typing import Union
 
-from bencoding import Decoder
+from bencoding import Decoder, Encoder
 
 
 class Torrent:
     def __init__(self, filename: Union[str, Path]) -> None:
         torrent_file = Path(filename).expanduser().resolve()
         decoder = Decoder(torrent_file.read_bytes())
+
         metainfo = decoder.decode()
 
         self.announce = metainfo["announce"]
@@ -21,6 +23,11 @@ class Torrent:
         self.publisher = metainfo.get("publisher-url")
         self.coment = metainfo.get("comment")
         self._meta = metainfo
+
+        encoded_info = Encoder(self.info).encode()
+        if not encoded_info:
+            raise ValueError("`info` block not found.")
+        self.info_hash = hashlib.sha1(encoded_info).digest()
 
     @property
     def size(self) -> int:

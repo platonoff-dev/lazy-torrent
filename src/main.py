@@ -1,8 +1,10 @@
+import asyncio
 from pathlib import Path
 
 import click
 from rich.prompt import Confirm
 
+import tracker
 from display import display_torrent_info
 from torrent import Torrent
 
@@ -27,6 +29,10 @@ def main(torrent_path: str, yes: bool) -> None:
         if not allow_download:
             print("Downloading aborted!")
             return
+
+    http_tracker = tracker.HTTTPTracker(torrent)
+    event_loop = asyncio.get_event_loop()
+    event_loop.run_until_complete(http_tracker.get_tracker_info())
 
 
 if __name__ == "__main__":
