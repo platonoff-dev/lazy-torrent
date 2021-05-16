@@ -7,6 +7,7 @@ from torrent import Torrent
 
 
 def generate_file_tree(dir_structure: Dict[str, dict], parent_prefix: str = "") -> str:
+    """Generate directory tree string for command line printing based on structure"""
     display_filename_prefix_middle = "├──"
     display_filename_prefix_last = "└──"
     display_parent_prefix_middle = "    "
@@ -45,6 +46,7 @@ def _generate_directory_tree(name: str, files: List[str]) -> Dict[str, dict]:
 
 
 def _generate_size(number_bytes: int) -> str:
+    """Convert count of bytest to human readable for with dimension"""
     dimensions = ["B", "KiB", "Mib", "GiB", "TiB"]
 
     current_dim = 0
@@ -53,22 +55,22 @@ def _generate_size(number_bytes: int) -> str:
         size /= 1024
         current_dim += 1
 
-    return f"{number_bytes:.3f} {dimensions[current_dim]}"
+    return f"{size:.3f} {dimensions[current_dim]}"
 
 
 def display_torrent_info(torrent: Torrent) -> None:
-    created_at = datetime.fromtimestamp(torrent.info["creation date"])
+    """Pretty print torrent basic info for confirmation of download"""
+    created_at = datetime.fromtimestamp(torrent.creation_date)
     files = []
-    if torrent.info["info"].get("files"):
-        files += ["/".join(file["path"]) for file in torrent.info["info"]["files"]]
+    if torrent.info.get("files"):
+        files += ["/".join(file["path"]) for file in torrent.info["files"]]
     else:
-        files.append(torrent.info["info"]["name"])
-    file_structure = _generate_directory_tree(torrent.info["info"]["name"], files)
-    print(
-        f"[yellow bold]Torrent: [green]{torrent.info['info']['name']} \"{torrent.info['comment']}\""
-    )
-    print(f"[yellow bold]Tracker: [green]{torrent.info['announce']}")
-    print(f"[yellow bold]Created: [green]{torrent.info['created by']} ({created_at})")
-    print(f"[yellow bold]Publisher: [green]{torrent.info.get('publisher')}")
+        files.append(torrent.info["name"])
+    file_structure = _generate_directory_tree(torrent.info["name"], files)
+
+    print(f'[yellow bold]Torrent: [green]{torrent.name} "{torrent.coment}"')
+    print(f"[yellow bold]Tracker: [green]{torrent.announce}")
+    print(f"[yellow bold]Created: [green]{torrent.created_by} ({created_at})")
+    print(f"[yellow bold]Publisher: [green]{torrent.publisher}")
     print(f"[yellow bold]Size: [green]{_generate_size(torrent.size)}")
     print(f"[yellow bold]Files: \n[green]{generate_file_tree(file_structure)}")
