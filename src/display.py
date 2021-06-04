@@ -68,7 +68,7 @@ def display_torrent_info(torrent: Torrent) -> None:
         files.append(torrent.info["name"])
     file_structure = _generate_directory_tree(torrent.info["name"], files)
 
-    print(f'[yellow bold]Torrent: [green]{torrent.name} "{torrent.coment}"')
+    print(f'[yellow bold]Torrent: [green]{torrent.name} "{torrent.comment}"')
     print(f"[yellow bold]Tracker: [green]{torrent.announce}")
     print(f"[yellow bold]Created: [green]{torrent.created_by} ({created_at})")
     print(f"[yellow bold]Publisher: [green]{torrent.publisher}")

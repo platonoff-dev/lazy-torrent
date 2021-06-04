@@ -21,7 +21,7 @@ class Torrent:
         self.encoding = metainfo.get("encoding")
         self.publisher = metainfo.get("publisher")
         self.publisher = metainfo.get("publisher-url")
-        self.coment = metainfo.get("comment")
+        self.comment = metainfo.get("comment")
         self._meta = metainfo
 
         encoded_info = Encoder(self.info).encode()

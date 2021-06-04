@@ -32,7 +32,7 @@ def main(torrent_path: str, yes: bool) -> None:
 
     http_tracker = tracker.HTTTPTracker(torrent)
     event_loop = asyncio.get_event_loop()
-    event_loop.run_until_complete(http_tracker.get_tracker_info())
+    event_loop.run_until_complete(http_tracker.connect())
 
 
 if __name__ == "__main__":
