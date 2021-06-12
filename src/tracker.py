@@ -1,27 +1,13 @@
+from abc import ABC, abstractmethod
 import random
 import urllib.parse
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any, ByteString, Dict, List
 
 import httpx
 
 import bencoding
 from torrent import Torrent
-
-
-class Tracker:
-    def __init__(self, torrent: Torrent):
-        self.torrent = torrent
-        self.peer_id = bytes(b"-AP0010-") + random.randbytes(12)
-
-
-class TrackerError(Exception):
-    def __init__(self, status_code: int, *args: object) -> None:
-        super().__init__(*args)
-
-
-class UDPTracker(Tracker):
-    pass
 
 
 @dataclass
@@ -44,15 +30,57 @@ class TrackerResponse:
             ip_addresses.append(ip)
         return ip_addresses
 
-
-class HTTTPTracker(Tracker):
+class Tracker(ABC):
     tracker_info: TrackerResponse
 
+    def __init__(self, torrent: Torrent):
+        self.torrent = torrent
+        self.peer_id: ByteString = bytes(b"-AP0010-") + random.randbytes(12)
+    
+    @abstractmethod
+    async def connect(self) -> None:
+        """
+        Connect to tracker and retrieve meta info about the torrent
+        """
+        pass
+
+    @abstractmethod
+    async def close(self) -> None:
+        """
+        Close all network resources
+        """
+        pass
+
+    @property
+    def interval(self) -> int:
+        return self.tracker_info.interval or self.tracker_info.min_interval or 30 * 60
+
+
+class TrackerError(Exception):
+    def __init__(self, status_code: int, *args: object) -> None:
+        super().__init__(*args)
+        self.status_code = status_code
+        self.meta = args
+
+    def __str__(self) -> str:
+        return f"Error while getting data from the tracker. Error: {self.status_code}. Additional info: {self.meta}"
+
+
+class UDPTracker(Tracker):
+    pass
+
+class HTTTPTracker(Tracker):
     def __init__(self, torrent: Torrent):
         super().__init__(torrent)
         self._client = httpx.AsyncClient()
 
     async def connect(self) -> None:
+        """
+        Connect to tracker and retrieve meta info about the torrent
+
+        Raises:
+            TrackerError: If response from tracker has not successfull status code
+        """
         request_data = {
             "info_hash": self.torrent.info_hash,
             "peer_id": self.peer_id,
@@ -71,3 +99,30 @@ class HTTTPTracker(Tracker):
 
     async def close(self) -> None:
         await self.close()
+
+
+class UDPTracker(Tracker):
+    def __init__(self, torrent: Torrent):
+        super().__init__(torrent)
+
+
+def get_tracker(torrent: Torrent) -> Tracker:
+    """
+    Create and return tracker object based on announce form torrent.
+
+    Args:
+        torrent Torrent: parsed torrent file
+    
+    Returns:
+        Tracker: tracker object based on announce protocol. Allowed protcols
+        is HTTP, UDP
+    Raises:
+        ValueError: If announce protocol is not supported.
+    """
+
+    if torrent.announce.startswith("http://"):
+        return HTTTPTracker(torrent)
+    elif torrent.announce.startswith("upd://"):
+        return UDPTracker(torrent)
+    else:
+        raise ValueError(f"Unknown tracker protcol. Announce: {torrent.announce}")

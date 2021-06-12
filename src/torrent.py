@@ -1,6 +1,6 @@
 import hashlib
 from pathlib import Path
-from typing import Union
+from typing import List, Union
 
 from bencoding import Decoder, Encoder
 
@@ -12,17 +12,17 @@ class Torrent:
 
         metainfo = decoder.decode()
 
-        self.announce = metainfo["announce"]
-        self.info = metainfo["info"]
-        self.name = metainfo["info"]["name"]
-        self.announce_list = metainfo.get("announce-list")
-        self.creation_date = metainfo.get("creation date")
-        self.created_by = metainfo.get("created by")
-        self.encoding = metainfo.get("encoding")
-        self.publisher = metainfo.get("publisher")
-        self.publisher = metainfo.get("publisher-url")
-        self.comment = metainfo.get("comment")
-        self._meta = metainfo
+        self.announce: str = metainfo["announce"]
+        self.info: dict = metainfo["info"]
+        self.name: str = metainfo["info"]["name"]
+        self.announce_list: List[str] = metainfo.get("announce-list")
+        self.creation_date: str = metainfo.get("creation date")
+        self.created_by: str = metainfo.get("created by")
+        self.encoding: str = metainfo.get("encoding")
+        self.publisher: str = metainfo.get("publisher")
+        self.publisher: str = metainfo.get("publisher-url")
+        self.comment: str = metainfo.get("comment")
+        self._meta: dict = metainfo
 
         encoded_info = Encoder(self.info).encode()
         if not encoded_info:
