@@ -21,8 +21,8 @@ from torrent import Torrent
     is_flag=True,
 )
 def main(torrent_path: str, yes: bool) -> None:
-    torrent_file = Path(torrent_path)
-    torrent = Torrent(torrent_file)
+    torrent_file_path = Path(torrent_path)
+    torrent = Torrent.parse(torrent_file_path)
     display_torrent_info(torrent)
     if not yes:
         allow_download = Confirm.ask("Allow download of this torrent", default="y")

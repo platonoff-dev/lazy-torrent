@@ -66,9 +66,6 @@ class TrackerError(Exception):
         return f"Error while getting data from the tracker. Error: {self.status_code}. Additional info: {self.meta}"
 
 
-class UDPTracker(Tracker):
-    pass
-
 class HTTTPTracker(Tracker):
     def __init__(self, torrent: Torrent):
         super().__init__(torrent)

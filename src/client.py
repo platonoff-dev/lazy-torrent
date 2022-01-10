@@ -11,13 +11,6 @@ from connection import PeerConnection
 MAX_PEERS = 10
 
 
-class PieceManager:
-    def __init__(self) -> None:
-        pass
-
-    def 
-
-
 class TorrentClient:
     """
     The torrent client is the local peer that holds peer-to-peer

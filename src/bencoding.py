@@ -76,35 +76,37 @@ class Decoder:
         self.raw = raw
         self._index = 0
 
-    def _read_until(self, symbol: bytes) -> bytes:
+    def _read_until_element(self, element: bytes) -> bytes:
         start_index = self._index
-        self._index = self.raw.index(symbol, self._index) + 1
+        self._index = self.raw.index(element, self._index) + 1
         return self.raw[start_index : self._index - 1]
 
-    def _read_next(self, n: int, move_index: bool = True) -> bytes:
+    def _read(self, n: int) -> bytes:
+        return self.raw[self._index : self._index + n]
+    
+    def _consume(self, n: int) -> bytes:
         start_position = self._index
-        if move_index:
-            self._index += n
-        return self.raw[start_position : start_position + n]
+        self._index = self._index + n
+        return self.raw[start_position:self._index]
 
     def _decode_int(self) -> int:
-        return int(self._read_until(b"e"))
+        return int(self._read_until_element(b"e"))
 
     def _decode_str(self) -> Union[str, bytes]:
-        length = int(self._read_until(b":"))
+        length = int(self._read_until_element(b":"))
         str_data: Union[bytes, str]
         try:
-            str_data = self._read_next(length, False).decode()
+            str_data = self._read(length).decode()
         except UnicodeDecodeError:
-            str_data = self._read_next(length, False)
-        self._read_next(length)
+            str_data = self._read(length)
+        self._consume(length)
         return str_data
 
     def _decode_list(self) -> list:
         res = []
         while self.raw[self._index : self._index + 1] != b"e":
             res.append(self.decode())
-        self._read_next(1)
+        self._consume(1)
         return res
 
     def _decode_dict(self) -> dict:
@@ -112,25 +114,21 @@ class Decoder:
         while self.raw[self._index : self._index + 1] != b"e":
             key = self.decode()
             res[key] = self.decode()
-        self._read_next(1)
+        self._consume(1)
         return res
 
     def decode(self) -> Any:
-        """
-        Decode bencoded data to python object
-        """
-
-        current = self._read_next(1, False)
+        current = self._read(1)
         if current == b"i":
-            self._read_next(1)
+            self._consume(1)
             return self._decode_int()
         elif current in b"1234567890":
             return self._decode_str()
         elif current == b"l":
-            self._read_next(1)
+            self._consume(1)
             return self._decode_list()
         elif current == b"d":
-            self._read_next(1)
+            self._consume(1)
             return self._decode_dict()
         else:
             return None
