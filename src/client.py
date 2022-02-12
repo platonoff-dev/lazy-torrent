@@ -1,12 +1,11 @@
-import time
 import asyncio
 import logging
+import time
 from typing import List
 
-from torrent import Torrent
-from tracker import Tracker, TrackerError, get_trackera
 from connection import PeerConnection
-
+from torrent import Torrent
+from tracker import HTTTPTracker, TrackerError
 
 MAX_PEERS = 10
 
@@ -14,20 +13,20 @@ MAX_PEERS = 10
 class TorrentClient:
     """
     The torrent client is the local peer that holds peer-to-peer
-    connactions to download and upload pieces for a given torrent. 
+    connactions to download and upload pieces for a given torrent.
 
     Once started, the client makes periodic announce calls to the tracker
-    registered in the torrent meta file. These calls results in a list of peers 
+    registered in the torrent meta file. These calls results in a list of peers
     that should be tried in order to exchange pieces.
     """
 
     def __init__(self, torrent: Torrent):
-        self.tracker = Tracker(torrent)
-        self.available_peers = asyncio.Queue()
+        self.tracker = HTTTPTracker(torrent)
+        self.available_peers: asyncio.Queue = asyncio.Queue()
         self.peers: List[PeerConnection] = []
-        self.piece_manager: PieceManager = None
+        self.piece_manager: PieceManager | None = None
         self.abort = False
-    
+
     async def start(self) -> None:
         """
         Start downloading torrent held by this client.
@@ -35,12 +34,15 @@ class TorrentClient:
         The method stops when downloading gull complete or aborted.
         """
         await self.tracker.connect()
-        self.peers = [PeerConnection(self.available_peers, self.tracker.peer_id) for _ in range(MAX_PEERS)]
+        self.peers = [
+            PeerConnection(self.available_peers, str(self.tracker.peer_id))
+            for _ in range(MAX_PEERS)
+        ]
         last_announce_call = None
         interval = self.tracker.interval
-        
+
         while True:
-            if self.piece_manager.compete:
+            if self.piece_manager and self.piece_manager.complete:
                 logging.info("Downloading complete")
                 break
 
@@ -66,16 +68,19 @@ class TorrentClient:
         await self.tracker.close()
         for peer in self.peers:
             peer.stop()
-        self.piece_manager.close()
+
+        if self.piece_manager:
+            self.piece_manager.close()
+
 
 class PieceManager:
     def __init__(self, torrent: Torrent) -> None:
         self.torrent = torrent
-    
+
     @property
-    def compete(self) -> bool:
+    def complete(self) -> bool:
         return False
-    
+
     @property
     def downloaded(self) -> int:
         """
@@ -92,7 +97,7 @@ class PieceManager:
         """
         return 0
 
-    def close(self):
+    def close(self) -> None:
         """
         Close all resource used in the PieceManage such as opened files.
         """

@@ -83,11 +83,11 @@ class Decoder:
 
     def _read(self, n: int) -> bytes:
         return self.raw[self._index : self._index + n]
-    
+
     def _consume(self, n: int) -> bytes:
         start_position = self._index
         self._index = self._index + n
-        return self.raw[start_position:self._index]
+        return self.raw[start_position : self._index]
 
     def _decode_int(self) -> int:
         return int(self._read_until_element(b"e"))

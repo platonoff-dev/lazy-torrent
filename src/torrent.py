@@ -30,7 +30,7 @@ class Torrent:
         self.publisher_url = publisher_url
         self.comment = comment
 
-    def parse(filename: Union[str, Path]) -> 'Torrent':
+    def parse(self, filename: Union[str, Path]) -> "Torrent":
         torrent_file = Path(filename).expanduser().resolve()
         decoder = Decoder(torrent_file.read_bytes())
         metainfo = decoder.decode()
@@ -45,7 +45,7 @@ class Torrent:
             metainfo.get("encoding"),
             metainfo.get("publisher"),
             metainfo.get("publisher-url"),
-            metainfo.get("comment")
+            metainfo.get("comment"),
         )
 
     @property
@@ -56,7 +56,7 @@ class Torrent:
             return self.info["length"]
 
     @property
-    def info_hash(self):
+    def info_hash(self) -> str:
         encoded_info = Encoder(self.info).encode()
         if not encoded_info:
             raise ValueError("`info` block not found.")

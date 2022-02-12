@@ -1,6 +1,6 @@
-from abc import ABC, abstractmethod
 import random
 import urllib.parse
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, ByteString, Dict, List
 
@@ -30,13 +30,14 @@ class TrackerResponse:
             ip_addresses.append(ip)
         return ip_addresses
 
+
 class Tracker(ABC):
     tracker_info: TrackerResponse
 
     def __init__(self, torrent: Torrent):
         self.torrent = torrent
         self.peer_id: ByteString = bytes(b"-AP0010-") + random.randbytes(12)
-    
+
     @abstractmethod
     async def connect(self) -> None:
         """
@@ -102,6 +103,12 @@ class UDPTracker(Tracker):
     def __init__(self, torrent: Torrent):
         super().__init__(torrent)
 
+    async def connect(self) -> None:
+        raise NotImplementedError
+
+    async def close(self) -> None:
+        raise NotImplementedError
+
 
 def get_tracker(torrent: Torrent) -> Tracker:
     """
@@ -109,7 +116,7 @@ def get_tracker(torrent: Torrent) -> Tracker:
 
     Args:
         torrent Torrent: parsed torrent file
-    
+
     Returns:
         Tracker: tracker object based on announce protocol. Allowed protcols
         is HTTP, UDP
