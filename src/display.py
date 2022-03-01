@@ -44,6 +44,9 @@ def _generate_directory_tree(name: str, files: List[str]) -> Dict[str, dict]:
                 current = current[part]
     return tree
 
+def _insert_by_path(tree: dict, path: list[str]) -> None:
+
+
 
 def _generate_size(number_bytes: int) -> str:
     """Convert count of bytest to human readable for with dimension"""
@@ -60,7 +63,9 @@ def _generate_size(number_bytes: int) -> str:
 
 def display_torrent_info(torrent: Torrent) -> None:
     """Pretty print torrent basic info for confirmation of download"""
-    created_at = datetime.fromtimestamp(torrent.creation_date)
+    created_at = None
+    if torrent.creation_date:
+        created_at = datetime.fromtimestamp(float(torrent.creation_date))
     files = []
     if torrent.info.get("files"):
         files += ["/".join(file["path"]) for file in torrent.info["files"]]

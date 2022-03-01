@@ -2,6 +2,7 @@ import random
 import urllib.parse
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any, ByteString, Dict, List
 
 import httpx
@@ -9,34 +10,17 @@ import httpx
 import bencoding
 from torrent import Torrent
 
-
-@dataclass
-class TrackerResponse:
-    def __init__(self, response_data: Dict[str, Any]):
-        self.complete: int = response_data["complete"]
-        self.downloaded: int = response_data["downloaded"]
-        self.incomplete: int = response_data["incomplete"]
-        self.interval: int = response_data["interval"]
-        self.min_interval: int = response_data["min interval"]
-        self.peers: List[str] = TrackerResponse.parse_peers(response_data["peers"])
-
-    @staticmethod
-    def parse_peers(peers_bytes: bytes) -> List[str]:
-        ip_addresses: List[str] = []
-        for i in range(len(peers_bytes) // 6):
-            address = peers_bytes[i : i + 6]
-            ip = ".".join(str(x) for x in address[:4])
-            ip += ":" + str(int.from_bytes(address[4:], "big"))
-            ip_addresses.append(ip)
-        return ip_addresses
+DEFAULT_NUMWANT = 30
+DEFAULT_ANNOUNCE_TIMEOUT_INTERVAL = 30 * 60
 
 
 class Tracker(ABC):
-    tracker_info: TrackerResponse
+    _interval: int | None = None
+    _min_interval: int | None = None
 
     def __init__(self, torrent: Torrent):
         self.torrent = torrent
-        self.peer_id: ByteString = bytes(b"-AP0010-") + random.randbytes(12)
+        self.peer_id: bytes = bytes(b"-AP0010-") + random.randbytes(12)
 
     @abstractmethod
     async def connect(self) -> None:
@@ -54,20 +38,118 @@ class Tracker(ABC):
 
     @property
     def interval(self) -> int:
-        return self.tracker_info.interval or self.tracker_info.min_interval or 30 * 60
+        return self._interval or self._min_interval or DEFAULT_ANNOUNCE_TIMEOUT_INTERVAL
+
+
+@dataclass
+class TrackerResponse:
+    def __init__(
+        self,
+        complete: int,
+        incomplete: int,
+        interval: int,
+        min_interval: int | None,
+        peers: bytes | list[dict],
+        tracker_id: str | None,
+    ):
+        self.complete = complete
+        self.incomplete = incomplete
+        self.interval = interval
+        self.min_interval = min_interval
+        self._peers = self._parse_peers(peers)
+        self.tracker_id = tracker_id
+
+    @staticmethod
+    def _parse_peers(peers: bytes | list[dict]) -> list[str]:
+        if isinstance(peers, bytes):
+            return TrackerResponse._parse_binary_peers(peers)
+        else:
+            return TrackerResponse._parse_dict_peers(peers)
+
+    @staticmethod
+    def _parse_binary_peers(peers: bytes) -> list[str]:
+        peer_ips = []
+        for i in range(0, len(peers) // 6):
+            ip_bytes = peers[i * 6 : (i + 1) * 6]
+            ip = ".".join(str(x) for x in ip_bytes[:4])
+            port = int.from_bytes(ip_bytes[4:], "big")
+            address = ip + ":" + str(port)
+            peer_ips.append(address)
+
+        return peer_ips
+
+    @staticmethod
+    def _parse_dict_peers(peers: list[dict]) -> list[str]:
+        addresses = []
+        for peer in peers:
+            address = peer["ip"] + ":" + peer["port"]
+            addresses.append(address)
+
+        return addresses
+
+    @property
+    def peers(self) -> list[str]:
+        return self._peers
 
 
 class TrackerError(Exception):
-    def __init__(self, status_code: int, *args: object) -> None:
+    def __init__(self, status_code: int, *args: object):
         super().__init__(*args)
         self.status_code = status_code
         self.meta = args
 
     def __str__(self) -> str:
-        return f"Error while getting data from the tracker. Error: {self.status_code}. Additional info: {self.meta}"
+        return f"Failed to get tracker data. Error: {self.status_code}. Additional info: {self.meta}"
+
+
+class AnnounceEvent(Enum):
+    STARTED = "started"
+    STOPPED = "stopped"
+    COMPLETED = "completed"
+
+
+class AnnounceRequest:
+    def __init__(
+        self,
+        info_hash: bytes,
+        peer_id: bytes,
+        port: int,
+        uploaded: int,
+        downloaded: int,
+        left: int,
+        event: AnnounceEvent,
+        compact: bool = False,
+        numwant: int = DEFAULT_NUMWANT,
+        key: str | None = None,
+        trackerid: str | None = None,
+    ) -> None:
+        self.info_hash = info_hash
+        self.peer_id = peer_id
+        self.port = port
+        self.uploaded = uploaded
+        self.downloaded = downloaded
+        self.left = left
+        self.compact = compact
+        self.event = event
+        self.numwant = numwant
+        self.key = key
+        self.trackerid = trackerid
+
+    def urlencode(self) -> str:
+        params = {}
+        for key, value in self.__dict__.items():
+            if value is not None:
+                params[key] = value
+
+        params.pop("compact")
+        # params["compact"] = 1 if params["compact"] else 0
+        params["event"] = params["event"].value
+        return urllib.parse.urlencode(params)
 
 
 class HTTTPTracker(Tracker):
+    tracker_info: TrackerResponse
+
     def __init__(self, torrent: Torrent):
         super().__init__(torrent)
         self._client = httpx.AsyncClient()
@@ -79,20 +161,36 @@ class HTTTPTracker(Tracker):
         Raises:
             TrackerError: If response from tracker has not successfull status code
         """
-        request_data = {
-            "info_hash": self.torrent.info_hash,
-            "peer_id": self.peer_id,
-            "port": random.randint(6881, 6889),
-            "uploaded": 0,
-            "downloaded": 0,
-            "left": self.torrent.size,
-        }
-        request_url = self.torrent.announce + "?" + urllib.parse.urlencode(request_data)
-        response = await self._client.get(request_url, params=request_data)
+        request = AnnounceRequest(
+            info_hash=self.torrent.info_hash,
+            peer_id=self.peer_id,
+            port=random.randint(6881, 6889),
+            uploaded=0,
+            downloaded=0,
+            compact=True,
+            left=self.torrent.size,
+            event=AnnounceEvent.STARTED,
+        )
+
+        request_url = self.torrent.announce + "?" + request.urlencode()
+        response = await self._client.get(request_url)
         if response.status_code != 200:
             raise TrackerError(status_code=response.status_code)
 
-        tracker_response = TrackerResponse(bencoding.Decoder(response.read()).decode())
+        decoded_response_body = bencoding.Decoder(response.read()).decode()
+        if decoded_response_body.get("failure reason"):
+            raise TrackerError(
+                response.status_code, decoded_response_body["failure reason"]
+            )
+
+        tracker_response = TrackerResponse(
+            interval=decoded_response_body["interval"],
+            min_interval=decoded_response_body.get("min interval"),
+            tracker_id=decoded_response_body.get("tracker id"),
+            peers=decoded_response_body["peers"],
+            complete=decoded_response_body["complete"],
+            incomplete=decoded_response_body["incomplete"],
+        )
         self.tracker_info = tracker_response
 
     async def close(self) -> None:

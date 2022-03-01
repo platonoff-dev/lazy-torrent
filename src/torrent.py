@@ -11,13 +11,13 @@ class Torrent:
         announce: str,
         info: dict,
         name: str,
-        announce_list: List[str],
-        creation_date: str,
-        created_by: str,
-        encoding: str,
-        publisher: str,
-        publisher_url: str,
-        comment: str,
+        announce_list: List[str] | None,
+        creation_date: str | None,
+        created_by: str | None,
+        encoding: str | None,
+        publisher: str | None,
+        publisher_url: str | None,
+        comment: str | None,
     ) -> None:
         self.announce = announce
         self.info = info
@@ -30,22 +30,23 @@ class Torrent:
         self.publisher_url = publisher_url
         self.comment = comment
 
-    def parse(self, filename: Union[str, Path]) -> "Torrent":
+    @staticmethod
+    def parse(filename: Union[str, Path]) -> "Torrent":
         torrent_file = Path(filename).expanduser().resolve()
         decoder = Decoder(torrent_file.read_bytes())
         metainfo = decoder.decode()
 
         return Torrent(
-            metainfo["announce"],
-            metainfo["info"],
-            metainfo["info"]["name"],
-            metainfo.get("announce-list"),
-            metainfo.get("creation date"),
-            metainfo.get("created by"),
-            metainfo.get("encoding"),
-            metainfo.get("publisher"),
-            metainfo.get("publisher-url"),
-            metainfo.get("comment"),
+            announce=metainfo["announce"],
+            info=metainfo["info"],
+            name=metainfo["info"]["name"],
+            announce_list=metainfo.get("announce-list"),
+            creation_date=metainfo.get("creation date"),
+            created_by=metainfo.get("created by"),
+            encoding=metainfo.get("encoding"),
+            publisher=metainfo.get("publisher"),
+            publisher_url=metainfo.get("publisher-url"),
+            comment=metainfo.get("comment"),
         )
 
     @property
@@ -56,8 +57,8 @@ class Torrent:
             return self.info["length"]
 
     @property
-    def info_hash(self) -> str:
+    def info_hash(self) -> bytes:
         encoded_info = Encoder(self.info).encode()
         if not encoded_info:
             raise ValueError("`info` block not found.")
-        return hashlib.sha1(encoded_info).hexdigest()
+        return hashlib.sha1(encoded_info).digest()

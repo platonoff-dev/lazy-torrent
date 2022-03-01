@@ -5,7 +5,7 @@ from typing import List
 
 from connection import PeerConnection
 from torrent import Torrent
-from tracker import HTTTPTracker, TrackerError
+from tracker import TrackerError, get_tracker
 
 MAX_PEERS = 10
 
@@ -21,20 +21,20 @@ class TorrentClient:
     """
 
     def __init__(self, torrent: Torrent):
-        self.tracker = HTTTPTracker(torrent)
-        self.available_peers: asyncio.Queue = asyncio.Queue()
-        self.peers: List[PeerConnection] = []
-        self.piece_manager: PieceManager | None = None
-        self.abort = False
+        self._tracker = get_tracker(torrent)
+        self._available_peers: asyncio.Queue = asyncio.Queue()
+        self._peers: List[PeerConnection] = []
+        self._piece_manager: PieceManager | None = None
+        self._abort = False
 
     async def start(self) -> None:
         """
         Start downloading torrent held by this client.
 
-        The method stops when downloading gull complete or aborted.
+        The method stops when downloading full complete or aborted.
         """
-        await self.tracker.connect()
-        self.peers = [
+        await self._tracker.connect()
+        self._peers = [
             PeerConnection(self.available_peers, str(self.tracker.peer_id))
             for _ in range(MAX_PEERS)
         ]
@@ -42,7 +42,7 @@ class TorrentClient:
         interval = self.tracker.interval
 
         while True:
-            if self.piece_manager and self.piece_manager.complete:
+            if self._piece_manager and self._piece_manager.complete:
                 logging.info("Downloading complete")
                 break
 
@@ -60,9 +60,6 @@ class TorrentClient:
                 last_announce_call = current
                 interval = self.tracker.interval
         self.stop()
-
-    def _empty_queue(self) -> None:
-        raise NotImplementedError
 
     async def stop(self) -> None:
         await self.tracker.close()
