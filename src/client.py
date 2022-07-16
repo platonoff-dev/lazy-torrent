@@ -4,7 +4,7 @@ import time
 from typing import List
 
 from connection import PeerConnection
-from torrent import Torrent
+from torrent import TorrentInfo
 from tracker import TrackerError, get_tracker
 
 MAX_PEERS = 10
@@ -13,14 +13,14 @@ MAX_PEERS = 10
 class TorrentClient:
     """
     The torrent client is the local peer that holds peer-to-peer
-    connactions to download and upload pieces for a given torrent.
+    connections to download and upload pieces for a given torrent.
 
     Once started, the client makes periodic announce calls to the tracker
     registered in the torrent meta file. These calls results in a list of peers
     that should be tried in order to exchange pieces.
     """
 
-    def __init__(self, torrent: Torrent):
+    def __init__(self, torrent: TorrentInfo):
         self._tracker = get_tracker(torrent)
         self._available_peers: asyncio.Queue = asyncio.Queue()
         self._peers: List[PeerConnection] = []
@@ -33,45 +33,45 @@ class TorrentClient:
 
         The method stops when downloading full complete or aborted.
         """
-        await self._tracker.connect()
+        await self._tracker.get_info()
         self._peers = [
-            PeerConnection(self.available_peers, str(self.tracker.peer_id))
+            PeerConnection(self._available_peers, str(self._tracker.peer_id))
             for _ in range(MAX_PEERS)
         ]
         last_announce_call = None
-        interval = self.tracker.interval
+        interval = self._tracker.interval
 
         while True:
             if self._piece_manager and self._piece_manager.complete:
                 logging.info("Downloading complete")
                 break
 
-            if self.abort:
+            if self._abort:
                 logging.info("Downloading aborted!")
                 break
 
             current = time.time()
             if not last_announce_call or (last_announce_call + interval > current):
                 try:
-                    self.tracker.connect()
+                    self._tracker.get_info()
                 except TrackerError as e:
                     logging.error(e)
                     break
                 last_announce_call = current
-                interval = self.tracker.interval
+                interval = self._tracker.interval
         self.stop()
 
     async def stop(self) -> None:
-        await self.tracker.close()
-        for peer in self.peers:
+        await self._tracker.close()
+        for peer in self._peers:
             peer.stop()
 
-        if self.piece_manager:
-            self.piece_manager.close()
+        if self._piece_manager:
+            self._piece_manager.close()
 
 
 class PieceManager:
-    def __init__(self, torrent: Torrent) -> None:
+    def __init__(self, torrent: TorrentInfo) -> None:
         self.torrent = torrent
 
     @property

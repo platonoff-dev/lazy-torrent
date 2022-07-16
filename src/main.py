@@ -6,7 +6,7 @@ from rich.prompt import Confirm
 
 import tracker
 from display import display_torrent_info
-from torrent import Torrent
+from torrent import TorrentInfo
 
 
 @click.command()
@@ -22,7 +22,7 @@ from torrent import Torrent
 )
 def main(torrent_path: str, yes: bool) -> None:
     torrent_file_path = Path(torrent_path)
-    torrent = Torrent.parse(torrent_file_path)
+    torrent = TorrentInfo.parse(torrent_file_path)
     display_torrent_info(torrent)
     if not yes:
         allow_download = Confirm.ask("Allow download of this torrent", default="y")
@@ -32,7 +32,7 @@ def main(torrent_path: str, yes: bool) -> None:
 
     http_tracker = tracker.HTTTPTracker(torrent)
     event_loop = asyncio.get_event_loop()
-    event_loop.run_until_complete(http_tracker.connect())
+    event_loop.run_until_complete(http_tracker.get_info())
 
 
 if __name__ == "__main__":

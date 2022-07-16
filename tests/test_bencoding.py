@@ -20,15 +20,13 @@ def test_encode_str() -> None:
 
 def test_encode_list() -> None:
     encode_list = [1, 2, "ste"]
-    assert Encoder(encode_list).encode() == f"li1ei2e3:stee".encode()
+    assert Encoder(encode_list).encode() == "li1ei2e3:stee".encode()
 
 
 def test_encode_dict() -> None:
     encode_dict = {"str": "ste", 1: 1, 2: ["one", "two"]}
 
-    assert (
-        Encoder(encode_dict).encode() == f"d3:str3:stei1ei1ei2el3:one3:twoee".encode()
-    )
+    assert Encoder(encode_dict).encode() == "d3:str3:stei1ei1ei2el3:one3:twoee".encode()
 
 
 def test_encode_bytes() -> None:

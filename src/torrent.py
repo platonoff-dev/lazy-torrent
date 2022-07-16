@@ -5,7 +5,7 @@ from typing import List, Union
 from bencoding import Decoder, Encoder
 
 
-class Torrent:
+class TorrentInfo:
     def __init__(
         self,
         announce: str,
@@ -31,12 +31,12 @@ class Torrent:
         self.comment = comment
 
     @staticmethod
-    def parse(filename: Union[str, Path]) -> "Torrent":
+    def parse(filename: Union[str, Path]) -> "TorrentInfo":
         torrent_file = Path(filename).expanduser().resolve()
         decoder = Decoder(torrent_file.read_bytes())
         metainfo = decoder.decode()
 
-        return Torrent(
+        return TorrentInfo(
             announce=metainfo["announce"],
             info=metainfo["info"],
             name=metainfo["info"]["name"],

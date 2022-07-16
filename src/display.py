@@ -3,7 +3,7 @@ from typing import Dict, List
 
 from rich import print
 
-from torrent import Torrent
+from torrent import TorrentInfo
 
 
 def generate_file_tree(dir_structure: Dict[str, dict], parent_prefix: str = "") -> str:
@@ -44,9 +44,6 @@ def _generate_directory_tree(name: str, files: List[str]) -> Dict[str, dict]:
                 current = current[part]
     return tree
 
-def _insert_by_path(tree: dict, path: list[str]) -> None:
-
-
 
 def _generate_size(number_bytes: int) -> str:
     """Convert count of bytest to human readable for with dimension"""
@@ -61,7 +58,7 @@ def _generate_size(number_bytes: int) -> str:
     return f"{size:.3f} {dimensions[current_dim]}"
 
 
-def display_torrent_info(torrent: Torrent) -> None:
+def display_torrent_info(torrent: TorrentInfo) -> None:
     """Pretty print torrent basic info for confirmation of download"""
     created_at = None
     if torrent.creation_date:
