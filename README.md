@@ -18,5 +18,5 @@ Terminal torrent client written on Python. I started it in learing purposes I wa
 ## How to use
 
 ```bash
-  python src/main.py <file.torrent>
+python src/main.py <file.torrent>
 ```
