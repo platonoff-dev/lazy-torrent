@@ -1,39 +1,33 @@
-import asyncio
 from pathlib import Path
-
 import click
-from rich.prompt import Confirm
 
-import tracker
-from display import display_torrent_info
+
+from display.display import render
 from torrent import TorrentInfo
+from storage import repository
 
+@click.group()
+def cli() -> None:
+    pass
 
-@click.command()
+@cli.command
+def start() -> None:
+    pass
+
+@cli.command
 @click.argument(
     "torrent_path",
     required=True,
     type=click.Path(dir_okay=False, exists=True),
 )
-@click.option(
-    "-y",
-    "--yes",
-    is_flag=True,
-)
-def main(torrent_path: str, yes: bool) -> None:
+def download(torrent_path: str) -> None: 
     torrent_file_path = Path(torrent_path)
     torrent = TorrentInfo.parse(torrent_file_path)
-    display_torrent_info(torrent)
-    if not yes:
-        allow_download = Confirm.ask("Allow download of this torrent", default="y")
-        if not allow_download:
-            print("Downloading aborted!")
-            return
+    repository.add_torrent(torrent)
 
-    http_tracker = tracker.HTTTPTracker(torrent)
-    event_loop = asyncio.get_event_loop()
-    event_loop.run_until_complete(http_tracker.get_info())
-
+@cli.command
+def display() -> None:
+    render()
 
 if __name__ == "__main__":
-    main()
+    cli()
