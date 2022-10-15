@@ -4,8 +4,10 @@ from rich.table import Table
 from rich.live import Live
 
 from meta_file.meta_file import MetaFileInfo
+from storage import repository
+from torrent import Torrent
 
-def generate_table(torrents: list[MetaFileInfo]) -> Table:
+def generate_table(torrents: list[Torrent]) -> Table:
     table = Table(expand=True)
     table.add_column("Name")
     table.add_column("Size")
@@ -16,7 +18,7 @@ def generate_table(torrents: list[MetaFileInfo]) -> Table:
     for torrent in torrents:
         table.add_row(
             torrent.name,
-            str(torrent.size),
+            "0 GiB",
             "ACTIVE",  # TODO: use actual data
             "0 MiB/s",  # TODO: use actual data
             "0.0", # TODO: use actual data
@@ -26,7 +28,7 @@ def generate_table(torrents: list[MetaFileInfo]) -> Table:
 
 
 def render() -> None:
-    table = generate_table()
+    table = generate_table(repository.list_torrents())
 
     with Live(table, screen=True) as live:
         for _ in range(40):

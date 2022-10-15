@@ -55,7 +55,7 @@ def list_torrents() -> list[Torrent]:
         for t in db_torrents:
             torrents.append(
                 Torrent(
-                    announces=t.split(","),
+                    announces=t.announces.split(","),
                     info=pickle.loads(t.info),
                     name=t.name,
                     creation_date=t.creation_date,
@@ -65,7 +65,7 @@ def list_torrents() -> list[Torrent]:
                     publisher_url=t.publisher_url,
                     comment=t.comment
                 )
-            ) 
+            )
 
     return torrents    
     
