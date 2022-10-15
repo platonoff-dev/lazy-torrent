@@ -1,4 +1,4 @@
-from bencoding import Decoder, Encoder
+from meta_file.bencoding import Decoder, Encoder
 
 
 def test_encode_int() -> None:

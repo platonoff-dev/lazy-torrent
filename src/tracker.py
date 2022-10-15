@@ -5,8 +5,8 @@ from enum import Enum
 
 import httpx
 
-import bencoding
-from torrent import TorrentInfo
+import meta_file.bencoding as bencoding
+from meta_file.meta_file import MetaFileInfo
 
 DEFAULT_NUMWANT = 30
 DEFAULT_ANNOUNCE_TIMEOUT_INTERVAL = 30 * 60
@@ -110,7 +110,7 @@ class Tracker(ABC):
     _interval: int | None = None
     _min_interval: int | None = None
 
-    def __init__(self, torrent: TorrentInfo):
+    def __init__(self, torrent: MetaFileInfo):
         self.torrent = torrent
         self.peer_id: bytes = bytes(b"-AP0010-") + random.randbytes(12)
 
@@ -144,7 +144,7 @@ class TrackerError(Exception):
 
 
 class HTTTPTracker(Tracker):
-    def __init__(self, torrent: TorrentInfo):
+    def __init__(self, torrent: MetaFileInfo):
         super().__init__(torrent)
         self._client = httpx.AsyncClient()
 
@@ -192,7 +192,7 @@ class HTTTPTracker(Tracker):
 
 
 class UDPTracker(Tracker):
-    def __init__(self, torrent: TorrentInfo):
+    def __init__(self, torrent: MetaFileInfo):
         super().__init__(torrent)
 
     async def get_info(self) -> TrackerResponse:
@@ -202,7 +202,7 @@ class UDPTracker(Tracker):
         raise NotImplementedError
 
 
-def get_tracker(torrent: TorrentInfo) -> Tracker:
+def get_tracker(torrent: MetaFileInfo) -> Tracker:
     """
     Create and return tracker object based on announce form torrent.
 

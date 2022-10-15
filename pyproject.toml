@@ -12,7 +12,6 @@ click = "^8.0"
 httpx = "^0.23"
 pytest-asyncio = "^0.19"
 SQLAlchemy = "^1.4.41"
-textual = "^0.1.18"
 alembic = "^1.8.1"
 
 [tool.poetry.dev-dependencies]
